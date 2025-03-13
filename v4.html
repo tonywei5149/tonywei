@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片字幕生成器</title>
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --primary-hover: #3a56d4;
+            --secondary-color: #ff6b6b;
+            --secondary-hover: #ff5252;
+            --text-color: #333;
+            --light-text: #666;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --border-radius: 10px;
+            --box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            --transition: all 0.3s ease;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 5px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.4;
+        }
+        
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 1.8rem;
+            font-weight: 700;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 5px;
+        }
+        
+        .controls, .preview {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            transition: var(--transition);
+        }
+        
+        .controls {
+            flex: 1;
+            min-width: 280px;
+            padding: 10px;
+            border-top: 4px solid var(--primary-color);
+        }
+        
+        .preview {
+            flex: 2;
+            min-width: 400px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border-top: 4px solid var(--secondary-color);
+        }
+        
+        .section {
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .section:last-child {
+            border-bottom: none;
+        }
+        
+        .section-title {
+            font-size: 1rem;
+            margin-bottom: 8px;
+            color: var(--primary-color);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+        
+        .section-title::before {
+            content: '';
+            display: inline-block;
+            width: 3px;
+            height: 16px;
+            background-color: var(--primary-color);
+            margin-right: 6px;
+            border-radius: 2px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 3px;
+            font-weight: 500;
+            color: var(--text-color);
+            font-size: 0.7rem;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 6px 8px;
+            margin-bottom: 8px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            box-sizing: border-box;
+            transition: var(--transition);
+            font-family: inherit;
+            font-size: 0.7rem;
+        }
+        
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+        }
+        
+        textarea {
+            height: 80px;
+            resize: vertical;
+        }
+        
+        input[type="range"] {
+            -webkit-appearance: none;
+            height: 5px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            outline: none;
+            border: none;
+            margin: 6px 0 12px;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: var(--primary-hover);
+            transform: scale(1.1);
+        }
+        
+        input[type="file"] {
+            padding: 6px;
+            background-color: #f5f7ff;
+            border: 1px dashed var(--primary-color);
+        }
+        
+        input[type="color"] {
+            width: 40px;
+            height: 30px;
+            padding: 2px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        button {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            margin-right: 6px;
+            margin-bottom: 6px;
+            transition: var(--transition);
+            box-shadow: 0 3px 5px rgba(0,0,0,0.1);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        #resetBtn {
+            background: linear-gradient(135deg, #6c757d, #495057);
+        }
+        
+        #downloadBtn {
+            background: linear-gradient(135deg, var(--secondary-color), var(--secondary-hover));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #downloadBtn::before {
+            content: '⬇️';
+            margin-right: 5px;
+            font-size: 1.1em;
+        }
+        
+        #imageCanvas {
+            max-width: 100%;
+            border-radius: 8px;
+            margin-top: 10px;
+            background-color: #f9f9f9;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: var(--transition);
+        }
+        
+        .color-picker {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .color-picker input[type="color"] {
+            margin-right: 8px;
+            margin-bottom: 0;
+        }
+        
+        .divider-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        
+        .divider-height {
+            flex: 1;
+            margin-right: 10px;
+        }
+        
+        .divider-height input[type="number"] {
+            width: 80px;
+        }
+        
+        .divider-color {
+            flex: 1;
+        }
+        
+        .download-section {
+            text-align: center;
+            margin-top: 10px;
+            width: 100%;
+        }
+        
+        .help-text {
+            font-size: 11px;
+            color: var(--light-text);
+            margin-top: -6px;
+            margin-bottom: 8px;
+            font-style: italic;
+        }
+        
+        /* 值显示样式 */
+        #fontSizeValue, #opacityValue, #lineHeightValue {
+            display: inline-block;
+            min-width: 30px;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1px 5px;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            text-align: center;
+            margin-left: 6px;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .controls, .preview {
+                min-width: 100%;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+                margin-bottom: 10px;
+            }
+            
+            .controls, .preview {
+                padding: 12px;
+            }
+            
+            .section {
+                padding-bottom: 10px;
+                margin-bottom: 10px;
+            }
+            
+            .section-title {
+                font-size: 1rem;
+                margin-bottom: 10px;
+            }
+            
+            button {
+                padding: 6px 12px;
+                font-size: 14px;
+            }
+        }
+        
+        /* 添加动画效果 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .controls, .preview {
+            animation: fadeIn 0.4s ease-out;
+        }
+        
+        .preview {
+            animation-delay: 0.1s;
+        }
+        
+        /* 加载动画 */
+        .loading {
+            position: relative;
+        }
+        
+        .loading::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.8) url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzgiIGhlaWdodD0iMzgiIHZpZXdCb3g9IjAgMCAzOCAzOCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiBzdHJva2U9IiM0MzYxZWUiPiAgICA8ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPiAgICAgICAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMSAxKSIgc3Ryb2tlLXdpZHRoPSIyIj4gICAgICAgICAgICA8Y2lyY2xlIHN0cm9rZS1vcGFjaXR5PSIuNSIgY3g9IjE4IiBjeT0iMTgiIHI9IjE4Ii8+ICAgICAgICAgICAgPHBhdGggZD0iTTM2IDE4YzAtOS45NC04LjA2LTE4LTE4LTE4Ij4gICAgICAgICAgICAgICAgICAgICAgIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgICAgICAgICAgICAgICAgICAgIHR5cGU9InJvdGF0ZSIgICAgICAgICAgICAgICAgICAgIGZyb209IjAgMTggMTgiICAgICAgICAgICAgICAgICAgICB0bz0iMzYwIDE4IDE4IiAgICAgICAgICAgICAgICAgICAgZHVyPSIxcyIgICAgICAgICAgICAgICAgICAgIHJlcGVhdENvdW50PSJpbmRlZmluaXRlIi8+ICAgICAgICAgICAgPC9wYXRoPiAgICAgICAgPC9nPiAgICA8L2c+PC9zdmc+') center no-repeat;
+            background-size: 30px;
+            border-radius: var(--border-radius);
+            z-index: 10;
+        }
+        
+        /* 提示信息样式 */
+        .toast {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            background: var(--primary-color);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 6px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(-15px);
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .toast.error {
+            background: var(--secondary-color);
+        }
+    </style>
+</head>
+<body>
+    <h1>图片字幕生成器</h1>
+    
+    <div class="container">
+        <div class="controls">
+            <div class="section">
+                <div class="section-title">图片设置</div>
+                <label for="imageUpload">上传图片：</label>
+                <input type="file" id="imageUpload" accept="image/*">
+                <p class="help-text">支持JPG、PNG等常见图片格式</p>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">字幕设置</div>
+                <label for="captionText">字幕内容：</label>
+                <textarea id="captionText" placeholder="输入字幕内容，每行一条字幕"></textarea>
+                
+                <label for="fontSize">字体大小：<span id="fontSizeValue">50px</span></label>
+                <input type="range" id="fontSize" min="5" max="160" value="50" oninput="updateFontSizeValue(this.value)">
+                
+                <label for="fontFamily">字体：</label>
+                <select id="fontFamily">
+                    <option value="Arial, sans-serif">Arial</option>
+                    <option value="'Microsoft YaHei', sans-serif" selected>微软雅黑</option>
+                    <option value="'SimHei', sans-serif">黑体</option>
+                    <option value="'KaiTi', serif">楷体</option>
+                    <option value="'SimSun', serif">宋体</option>
+                    <option value="'FangSong', serif">仿宋</option>
+                    <option value="Times New Roman, serif">Times New Roman</option>
+                    <option value="Georgia, serif">Georgia</option>
+                </select>
+                
+                <div class="color-picker">
+                    <label for="textColor">字体颜色：</label>
+                    <input type="color" id="textColor" value="#000000">
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">背景设置</div>
+                <div class="color-picker">
+                    <label for="bgColor">字幕底色：</label>
+                    <input type="color" id="bgColor" value="#ffffff">
+                </div>
+                
+                <label for="bgOpacity">字幕底色透明度：<span id="opacityValue">0.2</span></label>
+                <input type="range" id="bgOpacity" min="0" max="1" step="0.1" value="0.2" oninput="updateOpacityValue(this.value)">
+                
+                <div class="divider-controls">
+                    <div class="divider-height">
+                        <label for="dividerHeight">分割线高度：<input type="number" id="dividerHeight" min="0" max="10" value="2"></label>
+                    </div>
+                    
+                    <div class="color-picker divider-color">
+                        <label for="dividerColor">分割线颜色：</label>
+                        <input type="color" id="dividerColor" value="#000000">
+                    </div>
+                </div>
+                
+                <label for="lineHeight">字幕行高系数：<span id="lineHeightValue">0.7</span></label>
+                <input type="range" id="lineHeight" min="0.5" max="4.5" step="0.1" value="0.7" oninput="updateLineHeightValue(this.value)">
+                <span id="lineHeightValue">0.7</span>
+            </div>
+            
+            <button id="generateBtn">生成字幕</button>
+            <button id="resetBtn">重置</button>
+        </div>
+        
+        <div class="preview">
+            <div class="section-title">预览</div>
+            <canvas id="imageCanvas"></canvas>
+            <div class="download-section">
+                <button id="downloadBtn">下载图片</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 等待DOM加载完成
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM加载完成，初始化应用');
+            
+            // 获取DOM元素
+            const imageUpload = document.getElementById('imageUpload');
+            const captionText = document.getElementById('captionText');
+            const fontSize = document.getElementById('fontSize');
+            const fontFamily = document.getElementById('fontFamily');
+            const textColor = document.getElementById('textColor');
+            const bgColor = document.getElementById('bgColor');
+            const bgOpacity = document.getElementById('bgOpacity');
+            const dividerHeight = document.getElementById('dividerHeight');
+            const dividerColor = document.getElementById('dividerColor');
+            const lineHeight = document.getElementById('lineHeight');
+            const generateBtn = document.getElementById('generateBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const canvas = document.getElementById('imageCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // 全局变量
+            let mainImage = null;
+            
+            // 初始化画布
+            initCanvas();
+            
+            // 绑定事件监听器
+            bindEventListeners();
+            
+            // 显示提示信息的函数
+            function showToast(message, isError = false) {
+                // 移除现有的toast
+                const existingToast = document.querySelector('.toast');
+                if (existingToast) {
+                    document.body.removeChild(existingToast);
+                }
+                
+                // 创建新的toast
+                const toast = document.createElement('div');
+                toast.className = 'toast' + (isError ? ' error' : '');
+                toast.textContent = message;
+                document.body.appendChild(toast);
+                
+                // 显示toast
+                setTimeout(() => toast.classList.add('show'), 10);
+                
+                // 3秒后隐藏
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => {
+                        if (document.body.contains(toast)) {
+                            document.body.removeChild(toast);
+                        }
+                    }, 300);
+                }, 3000);
+            }
+            
+            // 初始化画布
+            function initCanvas() {
+                canvas.width = 800;
+                canvas.height = 400;
+                ctx.fillStyle = '#f9f9f9';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#333';
+                ctx.font = '20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('请上传图片', canvas.width/2, canvas.height/2);
+            }
+            
+            // 绑定所有事件监听器
+            function bindEventListeners() {
+                // 图片上传事件
+                imageUpload.addEventListener('change', handleImageUpload);
+                
+                // 生成按钮点击事件
+                generateBtn.addEventListener('click', function() {
+                    console.log('生成按钮被点击');
+                    if (!mainImage) {
+                        showToast('请先上传图片', true);
+                        return;
+                    }
+                    generateCaption();
+                    showToast('字幕生成成功！');
+                });
+                
+                // 重置按钮点击事件
+                resetBtn.addEventListener('click', function() {
+                    resetAll();
+                    showToast('已重置所有设置');
+                });
+                
+                // 下载按钮点击事件
+                downloadBtn.addEventListener('click', function() {
+                    if (!mainImage) {
+                        showToast('请先上传图片', true);
+                        return;
+                    }
+                    downloadImage();
+                });
+                
+                // 监听设置变化，实时更新预览
+                const controls = [
+                    captionText, fontSize, fontFamily, textColor,
+                    bgColor, bgOpacity, dividerHeight, dividerColor, lineHeight
+                ];
+                
+                controls.forEach(control => {
+                    control.addEventListener('input', function() {
+                        console.log(control.id + ' 值已更改');
+                        if (mainImage) {
+                            // 预览更新时不应用背景，只在点击生成按钮时应用
+                            previewCaption();
+                        }
+                    });
+                });
+                
+                // 字体大小、透明度和行高的显示值更新
+                fontSize.addEventListener('input', function() {
+                    updateFontSizeValue(this.value);
+                });
+                
+                bgOpacity.addEventListener('input', function() {
+                    updateOpacityValue(this.value);
+                });
+                
+                lineHeight.addEventListener('input', function() {
+                    updateLineHeightValue(this.value);
+                });
+            }
+            
+            // 更新字体大小显示值
+            function updateFontSizeValue(val) {
+                document.getElementById('fontSizeValue').textContent = val + 'px';
+            }
+            
+            // 更新透明度显示值
+            function updateOpacityValue(val) {
+                document.getElementById('opacityValue').textContent = val;
+            }
+            
+            // 更新行高系数显示值
+            function updateLineHeightValue(val) {
+                document.getElementById('lineHeightValue').textContent = val;
+            }
+            
+            // 处理图片上传
+            function handleImageUpload(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                // 检查文件类型
+                if (!file.type.startsWith('image/')) {
+                    showToast('请上传图片文件（JPG、PNG等格式）', true);
+                    return;
+                }
+                
+                // 显示加载状态
+                canvas.classList.add('loading');
+                
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        mainImage = img;
+                        canvas.classList.remove('loading');
+                        // 设置画布尺寸并绘制图片
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        ctx.drawImage(img, 0, 0, img.width, img.height);
+                        // 如果已有字幕内容，自动生成预览
+                        if (captionText.value.trim() !== '') {
+                            generateCaption();
+                        }
+                        showToast('图片上传成功！');
+                    };
+                    img.onerror = function() {
+                        canvas.classList.remove('loading');
+                        showToast('图片加载失败，请重试', true);
+                    };
+                    img.src = event.target.result;
+                };
+                reader.onerror = function() {
+                    canvas.classList.remove('loading');
+                    showToast('文件读取失败，请重试', true);
+                };
+                reader.readAsDataURL(file);
+            }
+            
+            // 预览字幕（不应用背景）
+            function previewCaption() {
+                console.log('previewCaption 函数被调用');
+                if (!mainImage) {
+                    showToast('请先上传图片', true);
+                    return;
+                }
+                
+                // 获取字幕文本（按行分割）
+                const captions = captionText.value.split('\n').filter(line => line.trim() !== '');
+                console.log('字幕内容:', captions);
+                if (captions.length === 0) {
+                    console.log('没有字幕内容');
+                    // 如果没有字幕，恢复原图
+                    canvas.width = mainImage.width;
+                    canvas.height = mainImage.height;
+                    ctx.drawImage(mainImage, 0, 0, mainImage.width, mainImage.height);
+                    return;
+                }
+                
+                // 设置字体
+                const fontSizeValue = parseInt(fontSize.value);
+                ctx.font = `${fontSizeValue}px ${fontFamily.value}`;
+                ctx.fillStyle = textColor.value;
+                ctx.textAlign = 'center';
+                
+                // 计算字幕区域
+                const lineHeightValue = fontSizeValue * parseFloat(lineHeight.value);
+                const padding = fontSizeValue * 0.5;
+                
+                // 计算每行字幕的高度（包括分割线）
+                const captionHeight = lineHeightValue + padding * 2;
+                const dividerHeightValue = parseInt(dividerHeight.value);
+                const totalCaptionHeight = captionHeight + dividerHeightValue;
+                
+                // 重新设置画布尺寸
+                console.log('原始画布尺寸:', canvas.width, canvas.height);
+                console.log('原始图片尺寸:', mainImage.width, mainImage.height);
+                
+                // 设置新的画布高度（原图高度 + 额外字幕的总高度）
+                const extraHeight = (captions.length > 1) ? (captions.length - 1) * totalCaptionHeight : 0;
+                canvas.width = mainImage.width;
+                canvas.height = mainImage.height + extraHeight;
+                
+                console.log('新画布尺寸:', canvas.width, canvas.height);
+                console.log('字幕总高度:', extraHeight);
+                
+                // 清除画布
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // 绘制主图片
+                ctx.drawImage(mainImage, 0, 0, mainImage.width, mainImage.height);
+                
+                // 保存背景样式设置，确保所有字幕使用相同的背景
+                const bgColorValue = bgColor.value;
+                const bgOpacityValue = parseFloat(bgOpacity.value);
+                
+                // 从第一行字幕位置截取背景图片
+                // 计算第一行字幕的背景位置
+                const firstCaptionBgY = mainImage.height - captionHeight;
+                const bgHeight = captionHeight;
+                
+                // 创建一个临时画布来存储第一行字幕的背景
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = bgHeight;
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                // 将第一行字幕位置的图片部分复制到临时画布
+                tempCtx.drawImage(mainImage, 0, firstCaptionBgY, canvas.width, bgHeight, 0, 0, canvas.width, bgHeight);
+                
+                // 绘制字幕和背景
+                for (let i = 0; i < captions.length; i++) {
+                    const caption = captions[i];
+                    console.log(`预览第${i+1}行字幕:`, caption);
+                    
+                    // 计算当前字幕的位置
+                    let yPosition;
+                    
+                    if (i === 0) {
+                        // 确保第一行字幕位置考虑行高系数
+                        yPosition = mainImage.height - padding - (lineHeightValue / 2) + (fontSizeValue / 2) * parseFloat(lineHeight.value);
+                    } else {
+                        // 后续字幕从原图底部开始向下排列
+                        yPosition = mainImage.height + ((i-1) * totalCaptionHeight) + (captionHeight / 2) + (fontSizeValue / 2) * parseFloat(lineHeight.value);
+                    }
+                    
+                    console.log(`字幕位置 y:`, yPosition);
+                    
+                    // 确保字体大小正确应用
+                    ctx.font = `${fontSizeValue}px ${fontFamily.value}`;
+                    ctx.fillStyle = textColor.value;
+                    ctx.textAlign = 'center';
+                    ctx.fillText(caption, canvas.width / 2, yPosition);
+                }
+            }
+            
+            // 生成字幕（应用背景）
+            function generateCaption() {
+                console.log('generateCaption 函数被调用');
+                if (!mainImage) {
+                    showToast('请先上传图片', true);
+                    return;
+                }
+                
+                // 获取字幕文本（按行分割）
+                const captions = captionText.value.split('\n').filter(line => line.trim() !== '');
+                console.log('字幕内容:', captions);
+                if (captions.length === 0) {
+                    console.log('没有字幕内容');
+                    // 如果没有字幕，恢复原图
+                    canvas.width = mainImage.width;
+                    canvas.height = mainImage.height;
+                    ctx.drawImage(mainImage, 0, 0, mainImage.width, mainImage.height);
+                    return;
+                }
+                
+                // 设置字体
+                const fontSizeValue = parseInt(fontSize.value);
+                ctx.font = `${fontSizeValue}px ${fontFamily.value}`;
+                ctx.fillStyle = textColor.value;
+                ctx.textAlign = 'center';
+                
+                // 计算字幕区域
+                const lineHeightValue = fontSizeValue * parseFloat(lineHeight.value);
+                const padding = fontSizeValue * 0.5;
+                
+                // 计算每行字幕的高度（包括分割线）
+                const captionHeight = lineHeightValue + padding * 2;
+                const dividerHeightValue = parseInt(dividerHeight.value);
+                const totalCaptionHeight = captionHeight + dividerHeightValue;
+                
+                // 重新设置画布尺寸
+                console.log('原始画布尺寸:', canvas.width, canvas.height);
+                console.log('原始图片尺寸:', mainImage.width, mainImage.height);
+                
+                // 设置新的画布高度（原图高度 + 额外字幕的总高度）
+                const extraHeight = (captions.length > 1) ? (captions.length - 1) * totalCaptionHeight : 0;
+                canvas.width = mainImage.width;
+                canvas.height = mainImage.height + extraHeight;
+                
+                console.log('新画布尺寸:', canvas.width, canvas.height);
+                console.log('字幕总高度:', extraHeight);
+                
+                // 清除画布
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // 绘制主图片
+                ctx.drawImage(mainImage, 0, 0, mainImage.width, mainImage.height);
+                
+                // 保存背景样式设置，确保所有字幕使用相同的背景
+                const bgColorValue = bgColor.value;
+                const bgOpacityValue = parseFloat(bgOpacity.value);
+                
+                // 从第一行字幕位置截取背景图片
+                // 计算第一行字幕的背景位置
+                const firstCaptionBgY = mainImage.height - captionHeight;
+                const bgHeight = captionHeight;
+                
+                // 创建一个临时画布来存储第一行字幕的背景
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = bgHeight;
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                // 将第一行字幕位置的图片部分复制到临时画布
+                tempCtx.drawImage(mainImage, 0, firstCaptionBgY, canvas.width, bgHeight, 0, 0, canvas.width, bgHeight);
+                
+                // 绘制字幕和背景
+                for (let i = 0; i < captions.length; i++) {
+                    const caption = captions[i];
+                    console.log(`绘制第${i+1}行字幕:`, caption);
+                    
+                    // 计算当前字幕的位置
+                    let yPosition;
+                    let bgY;
+                    
+                    if (i === 0) {
+                        // 确保第一行字幕位置考虑行高系数
+                        yPosition = mainImage.height - (captionHeight / 2) + (fontSizeValue / 2) * parseFloat(lineHeight.value);
+                        bgY = mainImage.height - captionHeight;
+                    } else {
+                        // 后续字幕从原图底部开始向下排列
+                        yPosition = mainImage.height + ((i-1) * totalCaptionHeight) + (captionHeight / 2) + (fontSizeValue / 2) * parseFloat(lineHeight.value);
+                        bgY = mainImage.height + ((i-1) * totalCaptionHeight);
+                    }
+                    
+                    console.log(`字幕位置 y:`, yPosition);
+                    console.log(`背景区域:`, {bgY, bgHeight});
+                    
+                    // 先绘制相同的背景图片
+                    ctx.drawImage(tempCanvas, 0, bgY);
+                    
+                    // 再绘制半透明背景色
+                    ctx.fillStyle = bgColorValue;
+                    ctx.globalAlpha = bgOpacityValue;
+                    ctx.fillRect(0, bgY, canvas.width, bgHeight);
+                    ctx.globalAlpha = 1.0;
+                    
+                    // 绘制分割线 - 对所有字幕行都绘制分割线
+                    if (dividerHeightValue > 0) {
+                        const dividerY = bgY + bgHeight;
+                        console.log(`绘制分割线 y:`, dividerY);
+                        ctx.fillStyle = dividerColor.value;
+                        ctx.fillRect(0, dividerY, canvas.width, dividerHeightValue);
+                    }
+                    
+                    // 绘制字幕文本
+                    ctx.font = `${fontSizeValue}px ${fontFamily.value}`;
+                    ctx.fillStyle = textColor.value;
+                    ctx.textAlign = 'center';
+                    ctx.fillText(caption, canvas.width / 2, yPosition);
+                }
+            }
+            
+            // 重置所有设置
+            function resetAll() {
+                captionText.value = '';
+                fontSize.value = 50;
+                updateFontSizeValue(50);
+                fontFamily.value = "'Microsoft YaHei', sans-serif";
+                textColor.value = '#ffffff';
+                bgColor.value = '#000000';
+                bgOpacity.value = 0.5;
+                updateOpacityValue(0.5);
+                dividerHeight.value = 2;
+                dividerColor.value = '#ffffff';
+                lineHeight.value = 1.2;
+                updateLineHeightValue(1.2);
+                
+                // 清空画布
+                if (mainImage) {
+                    canvas.width = mainImage.width;
+                    canvas.height = mainImage.height;
+                    ctx.drawImage(mainImage, 0, 0, mainImage.width, mainImage.height);
+                } else {
+                    initCanvas();
+                }
+            }
+            
+            // 下载图片
+            function downloadImage() {
+                if (!mainImage) {
+                    showToast('请先上传图片', true);
+                    return;
+                }
+                
+                // 创建下载链接
+                const link = document.createElement('a');
+                link.download = '字幕图片.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                showToast('图片已下载');
+            }
+        });
+    </script>
+</body>
+</html>
